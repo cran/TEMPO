@@ -340,103 +340,387 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 
-<p><code>TEMPO</code> provides access to the Romanian National Institute
-of Statistics’ TEMPO Online database. It has two public functions:</p>
-<ul>
-<li><code>tempo_toc()</code> lists the available statistical tables and
-their matrix codes.</li>
-<li><code>tempo_bulk()</code> downloads one or more complete tables as
-CSV files.</li>
-</ul>
-<p>The database is an external service, so the examples below need an
-internet connection. They are deliberately not evaluated when this
-vignette is built.</p>
-<div id="find-a-table" class="section level2">
-<h2>Find a table</h2>
-<p>Start by retrieving the table of contents. The default language is
-Romanian; set <code>language = &quot;en&quot;</code> to obtain English table
-names.</p>
+<p><code>TEMPO</code> gives R access to the Romanian National Institute
+of Statistics’ TEMPO Online database: roughly 1500 statistical matrices
+covering population, labour, agriculture, trade, prices and more.</p>
+<p>The database is an external service, so the chunks that need it are
+shown but not evaluated when this vignette is built. The chunks that
+need nothing but the package itself do run, so the output you see for
+them is real.</p>
+<div id="a-two-minute-tour" class="section level2">
+<h2>A two-minute tour</h2>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(TEMPO)</span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>tables <span class="ot">&lt;-</span> <span class="fu">tempo_toc</span>(<span class="at">language =</span> <span class="st">&quot;en&quot;</span>)</span>
-<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="fu">head</span>(tables)</span></code></pre></div>
-<p>The result is a data frame with <code>name</code> and
-<code>code</code> columns. Search the <code>name</code> column to
-identify a table of interest, then retain its code.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>population_tables <span class="ot">&lt;-</span> tables[</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  <span class="fu">grepl</span>(<span class="st">&quot;population&quot;</span>, tables<span class="sc">$</span>name, <span class="at">ignore.case =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">&quot;name&quot;</span>, <span class="st">&quot;code&quot;</span>)</span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>]</span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="fu">head</span>(population_tables)</span></code></pre></div>
-<p>Use <code>full_description = TRUE</code> when you need the
-statistical domain, sub-domain, survey name, and last-update date for
-every listed table. This makes one additional request for every matrix,
-so it can take a long time.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>table_details <span class="ot">&lt;-</span> <span class="fu">tempo_toc</span>(<span class="at">full_description =</span> <span class="cn">TRUE</span>, <span class="at">language =</span> <span class="st">&quot;en&quot;</span>)</span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">head</span>(table_details)</span></code></pre></div>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co"># 1. Find a table.</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>tables <span class="ot">&lt;-</span> <span class="fu">tempo_search</span>(<span class="st">&quot;unemployed&quot;</span>, <span class="at">language =</span> <span class="st">&quot;en&quot;</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>tables[, <span class="fu">c</span>(<span class="st">&quot;code&quot;</span>, <span class="st">&quot;name&quot;</span>)]</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co"># 2. Look at its structure, and its size, before downloading anything.</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>meta <span class="ot">&lt;-</span> <span class="fu">tempo_meta</span>(<span class="st">&quot;SOM101E&quot;</span>, <span class="at">language =</span> <span class="st">&quot;en&quot;</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>meta</span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="co"># 3. Pull the slice you need straight into a data frame.</span></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>unemployment <span class="ot">&lt;-</span> <span class="fu">tempo_get</span>(</span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>  <span class="st">&quot;SOM101E&quot;</span>,</span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>  <span class="at">filters =</span> <span class="fu">list</span>(</span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>    <span class="at">Sex        =</span> <span class="st">&quot;Total&quot;</span>,</span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>    <span class="at">Counties   =</span> <span class="st">&quot;Cluj&quot;</span>,</span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a>    <span class="at">Localities =</span> <span class="st">&quot;TOTAL&quot;</span>,</span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a>    <span class="at">Periods    =</span> <span class="fu">grep</span>(<span class="st">&quot;2024&quot;</span>, meta<span class="sc">$</span>values<span class="sc">$</span>Periods<span class="sc">$</span>label, <span class="at">value =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a>  ),</span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a>  <span class="at">language =</span> <span class="st">&quot;en&quot;</span></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a>)</span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a><span class="fu">head</span>(unemployment)</span></code></pre></div>
+<p>The package has three entry points, in increasing order of
+commitment: <code>tempo_toc()</code> and <code>tempo_search()</code>
+tell you what exists, <code>tempo_meta()</code> describes one table, and
+<code>tempo_get()</code> or <code>tempo_bulk()</code> fetch data.</p>
 </div>
-<div id="download-a-table" class="section level2">
-<h2>Download a table</h2>
-<p>Choose an output directory that you control.
-<code>tempo_bulk()</code> creates it if needed and writes only there.
-For example, the code below downloads the <code>ACC101B</code> matrix in
+<div id="finding-a-table" class="section level2">
+<h2>Finding a table</h2>
+<p>Start from the table of contents. The default language is Romanian;
+set <code>language = &quot;en&quot;</code> for English table names.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>tables <span class="ot">&lt;-</span> <span class="fu">tempo_toc</span>(<span class="at">language =</span> <span class="st">&quot;en&quot;</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">nrow</span>(tables)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="fu">head</span>(tables)</span></code></pre></div>
+<p>The result has a <code>name</code> and a <code>code</code>, plus a
+<code>comment</code> when the service supplies one. Searching it is
+common enough to have its own function, which accepts several patterns
+and searches every character column:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">tempo_search</span>(<span class="fu">c</span>(<span class="st">&quot;population&quot;</span>, <span class="st">&quot;migration&quot;</span>), <span class="at">language =</span> <span class="st">&quot;en&quot;</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co"># Reuse a table of contents you already hold rather than fetching it again.</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="fu">tempo_search</span>(<span class="st">&quot;population&quot;</span>, <span class="at">toc =</span> tables)</span></code></pre></div>
+<p>The service stores table names without diacritics, so search for the
+unaccented spelling: <code>&quot;sanatate&quot;</code>, not the accented form.</p>
+<div id="where-a-table-sits-in-the-classification" class="section level3">
+<h3>Where a table sits in the classification</h3>
+<p>Two routes give you the statistical domain, sub-domain and
+survey.</p>
+<p><code>tempo_hierarchy()</code> reads the service’s own navigation
+tree. The branch structure, currently 8 domains, 70 sub-domains and 262
+surveys, arrives in a single request:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>branches <span class="ot">&lt;-</span> <span class="fu">tempo_hierarchy</span>(<span class="at">language =</span> <span class="st">&quot;en&quot;</span>, <span class="at">matrices =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="fu">table</span>(branches<span class="sc">$</span>level)</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="fu">subset</span>(branches, level <span class="sc">==</span> <span class="dv">1</span>, <span class="at">select =</span> <span class="fu">c</span>(code, name))</span></code></pre></div>
+<p>The service does not include matrices in that listing, so placing
+every matrix in the tree costs one further request per survey. Those are
+issued concurrently and cached, and the default
+<code>matrices = TRUE</code> does it for you:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>tree <span class="ot">&lt;-</span> <span class="fu">tempo_hierarchy</span>(<span class="at">language =</span> <span class="st">&quot;en&quot;</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co"># Where does one matrix sit?</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>tree[tree<span class="sc">$</span>code <span class="sc">==</span> <span class="st">&quot;POP105A&quot;</span>, <span class="fu">c</span>(<span class="st">&quot;level&quot;</span>, <span class="st">&quot;path&quot;</span>)]</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co"># Every matrix under one domain.</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>population <span class="ot">&lt;-</span> tree[tree<span class="sc">$</span>is_matrix <span class="sc">&amp;</span> <span class="fu">grepl</span>(<span class="st">&quot;POPULATIE&quot;</span>, tree<span class="sc">$</span>path), ]</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="fu">head</span>(population[, <span class="fu">c</span>(<span class="st">&quot;code&quot;</span>, <span class="st">&quot;name&quot;</span>)])</span></code></pre></div>
+<p><code>tempo_toc(full_description = TRUE)</code> attaches the same
+three levels to every row of the table of contents. It has to ask about
+each matrix in turn, so even with concurrent requests and caching the
+first call takes a while:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>described <span class="ot">&lt;-</span> <span class="fu">tempo_toc</span>(<span class="at">full_description =</span> <span class="cn">TRUE</span>, <span class="at">language =</span> <span class="st">&quot;en&quot;</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">head</span>(described[, <span class="fu">c</span>(<span class="st">&quot;code&quot;</span>, <span class="st">&quot;Statistical_domain&quot;</span>, <span class="st">&quot;Last_update&quot;</span>)])</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co"># What has been revised most recently?</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="fu">head</span>(described[<span class="fu">order</span>(described<span class="sc">$</span>Last_update, <span class="at">decreasing =</span> <span class="cn">TRUE</span>), ])</span></code></pre></div>
+<p><code>Last_update</code> is a <code>Date</code>, so it sorts and
+filters directly. The service embeds HTML links in its top-level domain
+labels; those are stripped from every text column, and the URLs are kept
+in <code>Press_releases</code>.</p>
+</div>
+</div>
+<div id="looking-before-downloading" class="section level2">
+<h2>Looking before downloading</h2>
+<p>A TEMPO matrix can be very large: county-by-locality tables crossed
+with decades of years run to millions of observations.
+<code>tempo_meta()</code> tells you what you are about to ask for, in a
+single request.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>meta <span class="ot">&lt;-</span> <span class="fu">tempo_meta</span>(<span class="st">&quot;SOM101E&quot;</span>, <span class="at">language =</span> <span class="st">&quot;en&quot;</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>meta</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt; &lt;tempo_meta&gt; SOM101E</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt;   A. SOCIAL STATISTICS &gt; LABOUR FORCE &gt; REGISTERED UNEMPLOYED</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt;   language:    en</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt;   last update: 2026-10-12</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt;   full table:  88,663,248 cells, over 2,000 requests</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt;                too large to fetch whole; select values with tempo_get()</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt;   dimensions:  5</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt;     1. Sex (3 values): Total, Male, Female</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt;     2. Counties (43 values): TOTAL, Alba, Arad, ...</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt;     3. Localities (3182 values): TOTAL, 1017 ALBA IULIA MUNICIPALITY, ...</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt;     4. Periods (216 values): Year 2010, January 2010, February 2010, ...</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt;     5. MU: Persons (1 value): Number of persons</span></span></code></pre></div>
+<p>Two things in that output are worth dwelling on. The table has 88
+million cells, so it cannot be downloaded whole and
+<code>tempo_bulk()</code> would refuse it. And the unit of measure is a
+dimension of its own, <code>MU: Persons</code>, because that is how the
+service models it; [tempo_tidy()] later moves it out of the data into a
+<code>unit</code> column.</p>
+<p>The components are there for programmatic use:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>meta<span class="sc">$</span>dimensions      <span class="co"># one row per dimension, with how many values each has</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>meta<span class="sc">$</span>cells           <span class="co"># size of a full download</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>meta<span class="sc">$</span>requests        <span class="co"># how many HTTP requests that would take</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>meta<span class="sc">$</span>values<span class="sc">$</span>Years    <span class="co"># the selectable values, with the service&#39;s identifiers</span></span></code></pre></div>
+</div>
+<div id="getting-data-into-r" class="section level2">
+<h2>Getting data into R</h2>
+<p><code>tempo_get()</code> sends your selection to the service and
+returns a data frame. Dimensions you do not mention come back whole,
+which for a table like the one above would be far too much, so name the
+ones that matter:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>unemployment <span class="ot">&lt;-</span> <span class="fu">tempo_get</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="st">&quot;SOM101E&quot;</span>,</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="at">filters =</span> <span class="fu">list</span>(</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>    <span class="at">Sex        =</span> <span class="st">&quot;Total&quot;</span>,</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>    <span class="at">Counties   =</span> <span class="st">&quot;Cluj&quot;</span>,</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>    <span class="at">Localities =</span> <span class="st">&quot;TOTAL&quot;</span>,</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>    <span class="at">Periods    =</span> <span class="fu">grep</span>(<span class="st">&quot;2024&quot;</span>, meta<span class="sc">$</span>values<span class="sc">$</span>Periods<span class="sc">$</span>label, <span class="at">value =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>  ),</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>  <span class="at">language =</span> <span class="st">&quot;en&quot;</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a>)</span></code></pre></div>
+<p>Taking the <code>Periods</code> labels from <code>meta</code> rather
+than writing them out is worth the habit: it keeps the call working
+whatever format the service uses for those labels.</p>
+<p>Filter values are matched against the dimension’s labels: first
+exactly, ignoring case and surrounding space; then as a whole token, so
+<code>2024</code> finds <code>&quot;January 2024&quot;</code>; and finally against
+the service’s own numeric identifiers. A value that matches nothing is
+an error that lists what is available, rather than a quietly smaller
+result:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">tempo_get</span>(<span class="st">&quot;SOM101E&quot;</span>, <span class="at">filters =</span> <span class="fu">list</span>(<span class="at">Counties =</span> <span class="st">&quot;Atlantis&quot;</span>), <span class="at">language =</span> <span class="st">&quot;en&quot;</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt; Error: No value of dimension &quot;Counties&quot; matches &quot;Atlantis&quot;. Available</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt; values (first 10 of 43): TOTAL; Alba; Arad; Arges; Bacau; ...</span></span></code></pre></div>
+<p>Dimension names can be abbreviated, or given by position:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">tempo_get</span>(<span class="st">&quot;SOM101E&quot;</span>, <span class="at">filters =</span> <span class="fu">list</span>(<span class="at">Count =</span> <span class="st">&quot;Cluj&quot;</span>, <span class="at">Period =</span> <span class="st">&quot;January 2024&quot;</span>),</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>          <span class="at">language =</span> <span class="st">&quot;en&quot;</span>)</span></code></pre></div>
+</div>
+<div id="what-tidying-does" class="section level2">
+<h2>What tidying does</h2>
+<p>The CSV that TEMPO Online returns needs work before it can be
+analysed, and <code>tempo_get()</code> applies <code>tempo_tidy()</code>
+by default. This chunk runs, so you can see exactly what changes. It is
+the service’s own layout, including a footer line and an observation
+marked <code>&quot;:&quot;</code>:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>csv <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="st">&quot;Judete,Ani,UM: Numar persoane,Valoare&quot;</span>,</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  <span class="st">&quot;Cluj,Anul 2019,Numar persoane,1234&quot;</span>,</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>  <span class="st">&quot;Cluj,Anul 2020,Numar persoane,:&quot;</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>  <span class="st">&quot;Bihor,Anul 2019,Numar persoane,987&quot;</span>,</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>  <span class="st">&quot;,,,(c) INS 1998-2026&quot;</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>  <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span></span>
+<span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>)</span>
+<span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="fu">cat</span>(csv)</span>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a><span class="co">#&gt; Judete,Ani,UM: Numar persoane,Valoare</span></span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a><span class="co">#&gt; Cluj,Anul 2019,Numar persoane,1234</span></span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a><span class="co">#&gt; Cluj,Anul 2020,Numar persoane,:</span></span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a><span class="co">#&gt; Bihor,Anul 2019,Numar persoane,987</span></span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a><span class="co">#&gt; ,,,(c) INS 1998-2026</span></span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>tidy <span class="ot">&lt;-</span> <span class="fu">tempo_tidy</span>(csv, <span class="at">code =</span> <span class="st">&quot;DEMO101A&quot;</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>tidy</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt;   Judete  Ani           unit value</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">#&gt; 1   Cluj 2019 Numar persoane  1234</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt; 2   Cluj 2020 Numar persoane    NA</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt; 3  Bihor 2019 Numar persoane   987</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">str</span>(tidy)</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="co">#&gt; &#39;data.frame&#39;:    3 obs. of  4 variables:</span></span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="co">#&gt;  $ Judete: chr  &quot;Cluj&quot; &quot;Cluj&quot; &quot;Bihor&quot;</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="co">#&gt;  $ Ani   : int  2019 2020 2019</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="co">#&gt;  $ unit  : chr  &quot;Numar persoane&quot; &quot;Numar persoane&quot; &quot;Numar persoane&quot;</span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="co">#&gt;  $ value : num  1234 NA 987</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="co">#&gt;  - attr(*, &quot;tempo_code&quot;)= chr &quot;DEMO101A&quot;</span></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="co">#&gt;  - attr(*, &quot;tempo_unit&quot;)= chr &quot;Numar persoane&quot;</span></span></code></pre></div>
+<p>Four things happened:</p>
+<ul>
+<li>the unit of measure moved out of the <code>UM:</code> column
+<em>header</em> into a <code>unit</code> column;</li>
+<li><code>Valoare</code> became a numeric <code>value</code>, with
+<code>&quot;:&quot;</code> mapped to <code>NA</code>;</li>
+<li><code>&quot;Anul 2019&quot;</code> became the integer <code>2019</code>;</li>
+<li>the trailing copyright line was dropped, while the row whose
+observation is missing was kept, because its dimension columns are
+filled.</li>
+</ul>
+<p>Sub-annual tables also gain a <code>Date</code> column, which is what
+makes them usable in a time-series workflow without per-project label
+parsing. This is the layout with a separate <code>Luni</code>
+dimension:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>monthly <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  <span class="st">&quot;Luni,Ani,UM: Numar,Valoare&quot;</span>,</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  <span class="st">&quot;luna ianuarie,Anul 2024,Numar,10&quot;</span>,</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>  <span class="st">&quot;luna februarie,Anul 2024,Numar,12&quot;</span>,</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>  <span class="st">&quot;luna decembrie,Anul 2024,Numar,14&quot;</span>,</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>  <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>)</span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="fu">tempo_tidy</span>(monthly)</span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co">#&gt;             Luni  Ani  unit value     period</span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co">#&gt; 1  luna ianuarie 2024 Numar    10 2024-01-01</span></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co">#&gt; 2 luna februarie 2024 Numar    12 2024-02-01</span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="co">#&gt; 3 luna decembrie 2024 Numar    14 2024-12-01</span></span></code></pre></div>
+<p>Quarters and semesters are parsed the same way, in Romanian and
 English.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>data_directory <span class="ot">&lt;-</span> <span class="fu">file.path</span>(<span class="fu">tempdir</span>(), <span class="st">&quot;tempo-data&quot;</span>)</span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a></span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>files <span class="ot">&lt;-</span> <span class="fu">tempo_bulk</span>(</span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">codes =</span> <span class="st">&quot;ACC101B&quot;</span>,</span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="at">language =</span> <span class="st">&quot;en&quot;</span>,</span>
-<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>  <span class="at">directory =</span> data_directory</span>
-<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>)</span>
-<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a></span>
-<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>files</span></code></pre></div>
-<p><code>tempo_bulk()</code> returns the paths of files it downloaded,
-invisibly. A repeated call returns no path when the local file is
-already current, so construct the CSV path from the output directory and
-matrix code when later steps need the file. The downloaded files are
-ordinary comma-separated CSV files.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>csv_path <span class="ot">&lt;-</span> <span class="fu">file.path</span>(data_directory, <span class="st">&quot;ACC101B.csv&quot;</span>)</span>
-<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>accidents <span class="ot">&lt;-</span> utils<span class="sc">::</span><span class="fu">read.csv</span>(</span>
-<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  csv_path,</span>
-<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="at">check.names =</span> <span class="cn">FALSE</span></span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>)</span>
-<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>utils<span class="sc">::</span><span class="fu">head</span>(accidents)</span></code></pre></div>
+<p>Many matrices, including <code>SOM101E</code> above, instead use a
+single <code>Periods</code> dimension whose labels mix frequencies.
+Those labels are left exactly as received, because the label is the only
+thing separating an annual total from a monthly figure of the same year,
+and <code>year</code> and <code>period</code> columns are added
+alongside:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a>mixed <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>  <span class="st">&quot;Counties,Periods,UM: Persons,Value&quot;</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>  <span class="st">&quot;Cluj,Year 2010,Number of persons,100&quot;</span>,</span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>  <span class="st">&quot;Cluj,January 2010,Number of persons,8&quot;</span>,</span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a>  <span class="st">&quot;Cluj,February 2010,Number of persons,9&quot;</span>,</span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a>  <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a>)</span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a><span class="fu">tempo_tidy</span>(mixed)</span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a><span class="co">#&gt;   Counties       Periods              unit value year     period</span></span>
+<span id="cb16-10"><a href="#cb16-10" tabindex="-1"></a><span class="co">#&gt; 1     Cluj     Year 2010 Number of persons   100 2010       &lt;NA&gt;</span></span>
+<span id="cb16-11"><a href="#cb16-11" tabindex="-1"></a><span class="co">#&gt; 2     Cluj  January 2010 Number of persons     8 2010 2010-01-01</span></span>
+<span id="cb16-12"><a href="#cb16-12" tabindex="-1"></a><span class="co">#&gt; 3     Cluj February 2010 Number of persons     9 2010 2010-02-01</span></span></code></pre></div>
+<p><code>period</code> is <code>NA</code> on the annual row, so
+<code>subset(x, !is.na(period))</code> gives the monthly series and
+<code>subset(x, is.na(period))</code> the annual totals.</p>
+<p>If a value cannot be read as a number, it is reported once with a
+warning and the original text is kept in a <code>value_raw</code>
+column, so an unexpected flag becomes visible instead of silently
+turning into <code>NA</code>:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>odd <span class="ot">&lt;-</span> <span class="fu">paste</span>(</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>  <span class="st">&quot;Judete,Ani,UM: Numar,Valoare&quot;</span>,</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>  <span class="st">&quot;Cluj,Anul 2019,Numar,1234&quot;</span>,</span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>  <span class="st">&quot;Bihor,Anul 2019,Numar,confidential&quot;</span>,</span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a>  <span class="at">sep =</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a>)</span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a><span class="fu">suppressWarnings</span>(<span class="fu">tempo_tidy</span>(odd))</span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a><span class="co">#&gt;   Judete  Ani  unit value    value_raw</span></span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a><span class="co">#&gt; 1   Cluj 2019 Numar  1234         1234</span></span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a><span class="co">#&gt; 2  Bihor 2019 Numar    NA confidential</span></span></code></pre></div>
+<p>Pass <code>tidy = FALSE</code> to <code>tempo_get()</code> to skip
+all of this and receive the service’s layout verbatim, every column a
+character vector.</p>
 </div>
-<div id="download-several-tables" class="section level2">
-<h2>Download several tables</h2>
-<p>Pass a character vector to download multiple matrices. Requests are
-made sequentially, which keeps use of the public service
-conservative.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>codes <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;ACC101B&quot;</span>, <span class="st">&quot;ACC101C&quot;</span>)</span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>files <span class="ot">&lt;-</span> <span class="fu">tempo_bulk</span>(codes, <span class="at">language =</span> <span class="st">&quot;ro&quot;</span>, <span class="at">directory =</span> data_directory)</span></code></pre></div>
-<p>Some matrices have dimensions with many selectable values.
-<code>TEMPO</code> splits those requests into sequential chunks and
-combines the resulting CSV content into one file per matrix. A complete
-table can still be large, so download only the tables you need.</p>
+<div id="downloading-whole-tables-to-disk" class="section level2">
+<h2>Downloading whole tables to disk</h2>
+<p><code>tempo_bulk()</code> writes complete matrices as CSV files,
+which suits a pipeline that reads the same tables repeatedly or needs
+them outside R.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a>data_directory <span class="ot">&lt;-</span> <span class="fu">file.path</span>(<span class="fu">tempdir</span>(), <span class="st">&quot;tempo-data&quot;</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a>files <span class="ot">&lt;-</span> <span class="fu">tempo_bulk</span>(</span>
+<span id="cb18-4"><a href="#cb18-4" tabindex="-1"></a>  <span class="at">codes =</span> <span class="fu">c</span>(<span class="st">&quot;ACC101B&quot;</span>, <span class="st">&quot;ACC101C&quot;</span>),</span>
+<span id="cb18-5"><a href="#cb18-5" tabindex="-1"></a>  <span class="at">language =</span> <span class="st">&quot;en&quot;</span>,</span>
+<span id="cb18-6"><a href="#cb18-6" tabindex="-1"></a>  <span class="at">directory =</span> data_directory</span>
+<span id="cb18-7"><a href="#cb18-7" tabindex="-1"></a>)</span>
+<span id="cb18-8"><a href="#cb18-8" tabindex="-1"></a></span>
+<span id="cb18-9"><a href="#cb18-9" tabindex="-1"></a>files</span>
+<span id="cb18-10"><a href="#cb18-10" tabindex="-1"></a><span class="fu">attr</span>(files, <span class="st">&quot;downloaded&quot;</span>)</span>
+<span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a><span class="fu">attr</span>(files, <span class="st">&quot;reason&quot;</span>)</span></code></pre></div>
+<p>The return value names every requested matrix, whether or not it was
+fetched in this call, so the path is always available:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>accidents <span class="ot">&lt;-</span> <span class="fu">tempo_tidy</span>(files[[<span class="st">&quot;ACC101B&quot;</span>]], <span class="at">code =</span> <span class="st">&quot;ACC101B&quot;</span>)</span></code></pre></div>
+<div id="reusing-local-files-correctly" class="section level3">
+<h3>Reusing local files correctly</h3>
+<p>Next to the CSV files, <code>tempo_bulk()</code> keeps a
+<code>.tempo-manifest.json</code> recording, for each file, the
+language, the service’s own update string, the retrieval time, the
+number of requests spent and an MD5 checksum. A file is reused only when
+the language, the published revision and the checksum all agree.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="fu">tempo_bulk</span>(<span class="st">&quot;ACC101B&quot;</span>, <span class="at">language =</span> <span class="st">&quot;en&quot;</span>, <span class="at">directory =</span> data_directory)</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a><span class="co">#&gt; Skipping `ACC101B`: the local CSV is up to date.</span></span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a><span class="co">#&gt; All requested CSV files are up to date.</span></span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a><span class="co"># Asking for the other language re-downloads rather than reusing the file.</span></span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a><span class="fu">tempo_bulk</span>(<span class="st">&quot;ACC101B&quot;</span>, <span class="at">language =</span> <span class="st">&quot;ro&quot;</span>, <span class="at">directory =</span> data_directory)</span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a><span class="co"># Force a download regardless.</span></span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a><span class="fu">tempo_bulk</span>(<span class="st">&quot;ACC101B&quot;</span>, <span class="at">language =</span> <span class="st">&quot;en&quot;</span>, <span class="at">directory =</span> data_directory,</span>
+<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a>           <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+<p>The manifest is also the provenance record for a reproducible
+pipeline: it says which revision of each matrix your results were
+computed from, and when it was retrieved.</p>
 </div>
-<div id="reuse-local-files" class="section level2">
-<h2>Reuse local files</h2>
-<p>Before replacing a requested file, <code>tempo_bulk()</code> compares
-its modification date with the update date published by TEMPO Online.
-Repeating a download is therefore safe: files that are already current
-are skipped.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">tempo_bulk</span>(<span class="st">&quot;ACC101B&quot;</span>, <span class="at">language =</span> <span class="st">&quot;en&quot;</span>, <span class="at">directory =</span> data_directory)</span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">#&gt; Skipping `ACC101B`: the local CSV is up to date.</span></span></code></pre></div>
 </div>
-<div id="handle-a-temporarily-unavailable-service" class="section level2">
-<h2>Handle a temporarily unavailable service</h2>
-<p>The service can be unavailable or its response format can change. In
-that case, the functions stop with an informative error. For longer
-scripts, wrap the call in <code>tryCatch()</code> and decide how your
-workflow should recover.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>tables <span class="ot">&lt;-</span> <span class="fu">tryCatch</span>(</span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="fu">tempo_toc</span>(<span class="at">language =</span> <span class="st">&quot;en&quot;</span>),</span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">error =</span> <span class="cf">function</span>(error) {</span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">&quot;TEMPO Online is unavailable: &quot;</span>, <span class="fu">conditionMessage</span>(error))</span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>    <span class="cn">NULL</span></span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>  }</span>
-<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>)</span></code></pre></div>
+<div id="large-tables" class="section level2">
+<h2>Large tables</h2>
+<p>The service will not answer an arbitrarily large query, so a download
+is split into chunks whose product of selected values stays within
+<code>getOption(&quot;TEMPO.max_cells&quot;)</code>, and the parts are
+concatenated. Each part’s CSV header is compared with the first part’s,
+so misaligned columns are an error rather than a corrupt file.</p>
+<p>You rarely need to touch this, but the controls exist:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="fu">options</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>  <span class="at">TEMPO.max_cells =</span> <span class="fl">1e5</span>,       <span class="co"># larger single queries</span></span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>  <span class="at">TEMPO.max_connections =</span> <span class="dv">2</span>,   <span class="co"># gentler on the service</span></span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>  <span class="at">TEMPO.throttle =</span> <span class="fl">0.2</span>         <span class="co"># at least 0.2s between requests</span></span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a>)</span></code></pre></div>
+<p>See <code>?&quot;TEMPO-options&quot;</code> for the full list. TEMPO Online is
+a small public service with no published rate limit; the defaults are
+deliberately modest.</p>
+</div>
+<div id="caching" class="section level2">
+<h2>Caching</h2>
+<p>The table of contents and the per-matrix metadata change rarely and
+are expensive to fetch, so they are cached. By default the cache lives
+in the session’s temporary directory and disappears with the
+session:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="fu">tempo_cache_dir</span>()</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a><span class="co">#&gt; [1] &quot;C:\\Users\\maria\\AppData\\Local\\Temp\\RtmpIBY74F/TEMPO-cache&quot;</span></span></code></pre></div>
+<p>To keep it between sessions, point it somewhere persistent:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="fu">tempo_cache_dir</span>(tools<span class="sc">::</span><span class="fu">R_user_dir</span>(<span class="st">&quot;TEMPO&quot;</span>, <span class="st">&quot;cache&quot;</span>))</span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a><span class="co"># Or, in a project .Rprofile:</span></span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a><span class="fu">options</span>(<span class="at">TEMPO.cache_dir =</span> tools<span class="sc">::</span><span class="fu">R_user_dir</span>(<span class="st">&quot;TEMPO&quot;</span>, <span class="st">&quot;cache&quot;</span>))</span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a></span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a><span class="fu">tempo_cache_clear</span>()</span></code></pre></div>
+<p>Observations are never cached; only metadata is.</p>
+</div>
+<div id="when-the-service-misbehaves" class="section level2">
+<h2>When the service misbehaves</h2>
+<p>TEMPO Online goes down, changes its response format, and occasionally
+returns a 500 that succeeds on the next attempt. Transport failures and
+the statuses worth retrying are retried with exponential backoff before
+an error surfaces at all.</p>
+<p>What does surface carries a class, so a script can tell a mistake of
+its own from a problem at the other end:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="fu">tryCatch</span>(</span>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a>  <span class="fu">tempo_toc</span>(<span class="at">language =</span> <span class="st">&quot;fr&quot;</span>),</span>
+<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a>  <span class="at">tempo_input_error =</span> <span class="cf">function</span>(condition) <span class="st">&quot;my call was wrong&quot;</span>,</span>
+<span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a>  <span class="at">tempo_offline_error =</span> <span class="cf">function</span>(condition) <span class="st">&quot;the service is unreachable&quot;</span>,</span>
+<span id="cb24-5"><a href="#cb24-5" tabindex="-1"></a>  <span class="at">tempo_error =</span> <span class="cf">function</span>(condition) <span class="st">&quot;something else&quot;</span></span>
+<span id="cb24-6"><a href="#cb24-6" tabindex="-1"></a>)</span>
+<span id="cb24-7"><a href="#cb24-7" tabindex="-1"></a><span class="co">#&gt; [1] &quot;my call was wrong&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a><span class="co"># Read the HTTP status, and retry only what is worth retrying.</span></span>
+<span id="cb25-2"><a href="#cb25-2" tabindex="-1"></a><span class="fu">tryCatch</span>(</span>
+<span id="cb25-3"><a href="#cb25-3" tabindex="-1"></a>  <span class="fu">tempo_get</span>(<span class="st">&quot;ACC101B&quot;</span>),</span>
+<span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a>  <span class="at">tempo_http_error =</span> <span class="cf">function</span>(condition) {</span>
+<span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a>    <span class="fu">message</span>(<span class="st">&quot;HTTP &quot;</span>, condition<span class="sc">$</span>status_code, <span class="st">&quot; from &quot;</span>, condition<span class="sc">$</span>url)</span>
+<span id="cb25-6"><a href="#cb25-6" tabindex="-1"></a>    <span class="cn">NULL</span></span>
+<span id="cb25-7"><a href="#cb25-7" tabindex="-1"></a>  },</span>
+<span id="cb25-8"><a href="#cb25-8" tabindex="-1"></a>  <span class="at">tempo_offline_error =</span> <span class="cf">function</span>(condition) {</span>
+<span id="cb25-9"><a href="#cb25-9" tabindex="-1"></a>    <span class="fu">Sys.sleep</span>(<span class="dv">60</span>)</span>
+<span id="cb25-10"><a href="#cb25-10" tabindex="-1"></a>    <span class="fu">tempo_get</span>(<span class="st">&quot;ACC101B&quot;</span>)</span>
+<span id="cb25-11"><a href="#cb25-11" tabindex="-1"></a>  }</span>
+<span id="cb25-12"><a href="#cb25-12" tabindex="-1"></a>)</span></code></pre></div>
+<p><code>?&quot;TEMPO-conditions&quot;</code> lists every class and the fields it
+carries. A plain <code>tryCatch(expr, error = ...)</code> still catches
+all of them.</p>
+</div>
+<div id="moving-from-version-0.1.0" class="section level2">
+<h2>Moving from version 0.1.0</h2>
+<p>The 0.1.0 API still works. Two behaviours changed on purpose:</p>
+<ul>
+<li><code>tempo_bulk()</code> now returns the paths of
+<strong>all</strong> requested matrices, named by code, rather than only
+the newly written ones. Code that looped over the result still works;
+code that relied on skipped files being absent should consult
+<code>attr(files, &quot;downloaded&quot;)</code>.</li>
+<li><code>tempo_toc(full_description = TRUE)</code> returns
+<code>Last_update</code> as a <code>Date</code> instead of a character
+string, and its <code>Statistical_domain</code> no longer contains raw
+HTML.</li>
+</ul>
+<p>Everything else is new: <code>tempo_get()</code>,
+<code>tempo_meta()</code>, <code>tempo_tidy()</code>,
+<code>tempo_search()</code>, <code>tempo_hierarchy()</code>,
+<code>tempo_cache_dir()</code>.</p>
 </div>
 
 

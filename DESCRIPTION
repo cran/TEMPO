@@ -1,30 +1,34 @@
 Package: TEMPO
 Type: Package
 Title: Tools for Romania's National Institute of Statistics Tempo Data
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: c(
     person("Marian", "Necula", email = "marian.necula00@gmail.com", role = c("aut", "cre")),
     person("Bogdan", "Oancea", email = "bogdan.oancea@gmail.com", role = "aut"),
     person("Ana Maria", "Tiru", email = "tiru.ana21@gmail.com", role = "aut")
     )
-Maintainer: Marian Necula <marian.necula00@gmail.com>
-Description: Download table metadata and data from the Romanian National
-    Institute of Statistics' TEMPO Online database. Tables can be listed in
-    Romanian or English and downloaded as CSV files.
+Description: Find, inspect and download statistical tables from the Romanian
+    National Institute of Statistics' TEMPO Online database. Tables can be
+    listed and searched in Romanian or English, their structure inspected
+    before downloading, and whole tables or filtered selections retrieved
+    either as data frames or as CSV files that are kept up to date between
+    sessions.
 License: GPL-3 | EUPL-1.1
 URL: https://github.com/RProjectRomania/TEMPO
 BugReports: https://github.com/RProjectRomania/TEMPO/issues
 Depends: R (>= 3.6)
-Imports: curl (>= 5.0.0), jsonlite (>= 1.7.0)
-Suggests: knitr, rmarkdown, testthat (>= 3.0.0)
+Imports: curl (>= 5.0.0), jsonlite (>= 1.7.0), stats, tools, utils
+Suggests: knitr, rmarkdown, testthat (>= 3.0.0), webfakes (>= 1.1.0),
+        withr
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 Encoding: UTF-8
-RoxygenNote: 7.3.2
 NeedsCompilation: no
-Packaged: 2026-09-23 07:22:27 UTC; Marian
+Config/roxygen2/version: 8.1.1
+Packaged: 2026-10-30 19:42:55 UTC; maria
 Author: Marian Necula [aut, cre],
   Bogdan Oancea [aut],
   Ana Maria Tiru [aut]
+Maintainer: Marian Necula <marian.necula00@gmail.com>
 Repository: CRAN
-Date/Publication: 2026-10-02 12:20:02 UTC
+Date/Publication: 2026-10-30 21:00:02 UTC
